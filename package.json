@@ -1,0 +1,12 @@
+{
+  "name": "cloak-and-dagger",
+  "version": "1.0.0",
+  "private": true,
+  "description": "An AI-hosted social-deduction party game for 4-12 players on one device, built on the Pollinations API.",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "test": "node test/engine.test.mjs",
+    "serve": "python3 -m http.server 8080"
+  }
+}

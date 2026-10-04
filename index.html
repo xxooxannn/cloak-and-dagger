@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Cloak &amp; Dagger — an AI-hosted party deduction game</title>
+    <meta
+      name="description"
+      content="A candlelit social-deduction party game for 4-12 players on one device. An AI host writes a fresh scenario every game, deals secret cards, narrates the tension and reads the verdict aloud. Built on the Pollinations API."
+    />
+    <meta name="theme-color" content="#0b0a0c" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Cloak &amp; Dagger" />
+    <meta
+      property="og:description"
+      content="An AI host writes the scene, deals the cards and reads the verdict. 4-12 players, one device, a new conspiracy every night."
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="css/app.css" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0a0c'/%3E%3Cpath d='M16 5c3 2 5 5 5 9a5 5 0 0 1-10 0c0-4 2-7 5-9z' fill='%23c39d54'/%3E%3C/svg%3E"
+    />
+  </head>
+  <body>
+    <header class="shell masthead">
+      <h1 class="masthead__title">Cloak &amp; <em>Dagger</em></h1>
+      <div class="masthead__meta">
+        <span class="pollen-dot" id="wallet-chip">Pollen</span>
+      </div>
+    </header>
+
+    <main class="shell" id="screen" aria-live="polite"></main>
+
+    <footer class="shell foot">
+      <span>
+        Built with the
+        <a href="https://pollinations.ai" target="_blank" rel="noopener">Pollinations</a>
+        API. You pay with your own Pollen — this app never spends it for you.
+      </span>
+      <span>
+        <a href="https://github.com/xxooxannn/cloak-and-dagger" target="_blank" rel="noopener"
+          >Source</a
+        >
+      </span>
+    </footer>
+
+    <noscript>
+      <div class="shell" style="padding: 40px 0">
+        <p class="muted">
+          Cloak &amp; Dagger needs JavaScript to run the AI host in your browser.
+        </p>
+      </div>
+    </noscript>
+
+    <script type="module" src="js/main.js"></script>
+  </body>
+</html>

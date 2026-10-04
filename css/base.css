@@ -1,0 +1,374 @@
+/* ==========================================================================
+   Cloak & Dagger — design tokens + base layer
+   A dark, candlelit drawing-room palette: ink, brass, oxblood.
+   ========================================================================== */
+
+:root {
+  /* Surfaces: warm near-blacks, never pure #000 */
+  --ink-900: #0b0a0c;
+  --ink-850: #100e11;
+  --ink-800: #151317;
+  --ink-750: #1b181d;
+  --ink-700: #221e24;
+  --ink-600: #2c272f;
+  --ink-500: #3a343d;
+
+  /* Brass — primary accent, used sparingly */
+  --brass-400: #d9b779;
+  --brass-500: #c39d54;
+  --brass-300: #e8d3a3;
+
+  /* Oxblood — danger, culprit, accusation */
+  --blood-500: #a8322f;
+  --blood-400: #c4463f;
+  --blood-300: #e0756c;
+
+  /* Sage — verified, correct, townsfolk win */
+  --sage-500: #6f9e7a;
+  --sage-400: #8fbfa0;
+
+  /* Text */
+  --text-hi: #f2ece2;
+  --text-mid: #b9b0a4;
+  --text-low: #7d7468;
+
+  /* Lines */
+  --line: #2e2932;
+  --line-soft: #241f27;
+
+  /* Type */
+  --font-display: "Cormorant Garamond", "Iowan Old Style", Georgia, serif;
+  --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "SF Mono", "JetBrains Mono", ui-monospace, monospace;
+
+  /* Rhythm */
+  --gap-1: 4px;
+  --gap-2: 8px;
+  --gap-3: 14px;
+  --gap-4: 22px;
+  --gap-5: 34px;
+  --gap-6: 54px;
+  --gap-7: 84px;
+
+  --radius-sm: 4px;
+  --radius: 8px;
+  --radius-lg: 16px;
+
+  --shadow-lift: 0 18px 50px -22px rgb(0 0 0 / 90%);
+  --shadow-deep: 0 40px 90px -40px rgb(0 0 0 / 95%);
+
+  --ease: cubic-bezier(0.32, 0.72, 0.24, 1);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background: var(--ink-900);
+  color: var(--text-hi);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* Candle-lit vignette that sits under every screen */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(120% 80% at 50% -10%, rgb(195 157 84 / 9%), transparent 60%),
+    radial-gradient(90% 60% at 50% 110%, rgb(168 50 47 / 7%), transparent 65%);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.12;
+  margin: 0;
+}
+
+p {
+  margin: 0;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+input,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+::selection {
+  background: rgb(195 157 84 / 28%);
+}
+
+/* Visible focus for keyboard users only */
+:focus-visible {
+  outline: 2px solid var(--brass-400);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
+}
+
+/* --------------------------------------------------------------------------
+   Layout primitives
+   -------------------------------------------------------------------------- */
+
+.shell {
+  position: relative;
+  z-index: 1;
+  width: min(1120px, 100% - var(--gap-5) * 2);
+  margin-inline: auto;
+}
+
+.shell--narrow {
+  width: min(760px, 100% - var(--gap-5) * 2);
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--brass-400);
+}
+
+.muted {
+  color: var(--text-mid);
+}
+
+.dim {
+  color: var(--text-low);
+}
+
+/* --------------------------------------------------------------------------
+   Buttons
+   -------------------------------------------------------------------------- */
+
+.btn {
+  --btn-bg: var(--ink-700);
+  --btn-fg: var(--text-hi);
+  --btn-line: var(--line);
+  appearance: none;
+  border: 1px solid var(--btn-line);
+  background: var(--btn-bg);
+  color: var(--btn-fg);
+  padding: 12px 22px;
+  border-radius: var(--radius);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  transition:
+    transform 0.16s var(--ease),
+    background 0.16s var(--ease),
+    border-color 0.16s var(--ease),
+    opacity 0.16s var(--ease);
+}
+
+.btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: var(--ink-500);
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn--primary {
+  --btn-bg: linear-gradient(180deg, var(--brass-400), var(--brass-500));
+  --btn-fg: var(--ink-900);
+  --btn-line: transparent;
+  font-weight: 600;
+}
+
+.btn--primary:hover:not(:disabled) {
+  --btn-bg: linear-gradient(180deg, var(--brass-300), var(--brass-400));
+}
+
+.btn--danger {
+  --btn-bg: linear-gradient(180deg, var(--blood-400), var(--blood-500));
+  --btn-fg: #fff;
+  --btn-line: transparent;
+  font-weight: 600;
+}
+
+.btn--ghost {
+  --btn-bg: transparent;
+  --btn-line: var(--line);
+}
+
+.btn--lg {
+  padding: 16px 32px;
+  font-size: 16px;
+}
+
+.btn--block {
+  width: 100%;
+}
+
+/* --------------------------------------------------------------------------
+   Cards & panels
+   -------------------------------------------------------------------------- */
+
+.panel {
+  background: linear-gradient(180deg, var(--ink-800), var(--ink-850));
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lift);
+}
+
+.panel__body {
+  padding: var(--gap-5);
+}
+
+/* --------------------------------------------------------------------------
+   Form controls
+   -------------------------------------------------------------------------- */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-2);
+}
+
+.field__label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-mid);
+}
+
+.field__hint {
+  font-size: 12.5px;
+  color: var(--text-low);
+  line-height: 1.45;
+}
+
+.input,
+.textarea {
+  width: 100%;
+  background: var(--ink-900);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  transition:
+    border-color 0.16s var(--ease),
+    background 0.16s var(--ease);
+}
+
+.input::placeholder,
+.textarea::placeholder {
+  color: var(--text-low);
+}
+
+.input:focus,
+.textarea:focus {
+  outline: none;
+  border-color: var(--brass-500);
+  background: var(--ink-850);
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 84px;
+  line-height: 1.5;
+}
+
+/* --------------------------------------------------------------------------
+   Motion
+   -------------------------------------------------------------------------- */
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgb(195 157 84 / 34%);
+  }
+  70% {
+    box-shadow: 0 0 0 14px rgb(195 157 84 / 0%);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgb(195 157 84 / 0%);
+  }
+}
+
+@keyframes shimmer {
+  to {
+    background-position: 200% center;
+  }
+}
+
+.rise {
+  animation: rise 0.5s var(--ease) both;
+}
+
+/* Respect users who ask for less motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}

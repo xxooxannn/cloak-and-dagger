@@ -30,7 +30,8 @@
   /* Text */
   --text-hi: #f2ece2;
   --text-mid: #b9b0a4;
-  --text-low: #7d7468;
+  /* 5.1:1 on --ink-900, so the quietest labels still clear WCAG AA. */
+  --text-low: #8a8073;
 
   /* Lines */
   --line: #2e2932;

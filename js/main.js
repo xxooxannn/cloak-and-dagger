@@ -914,11 +914,17 @@ async function verdictPhase() {
   const extra = $("#stage-extra");
   extra.replaceChildren(summary, confession, scoreboard);
 
-  if (state.images && ending.poster_prompt) {
+  // The model sometimes leaves the poster prompt out; fall back to one built
+  // from the headline so every game ends with a case file.
+  const posterPrompt =
+    ending.poster_prompt ||
+    `A dramatic noir case-file poster. Moody single light source, deep shadows, film grain, aged paper texture. The only text in the image is the words "${ending.headline || "The Verdict"}" in large letterpress capitals.`;
+
+  if (state.images) {
     // A container, not an <img>: paintImage fills it once the URL comes back.
     const frame = el("div", { style: "margin-top:var(--gap-4)" });
     extra.append(frame);
-    paintImage(frame, ending.poster_prompt, "poster");
+    paintImage(frame, posterPrompt, "poster");
   }
 
   extra.append(

@@ -81,6 +81,9 @@ export function busy(label, note = "") {
  * instead — that is how the accusation and vote screens collect an answer.
  */
 export function curtain({ eyebrow, title, note, body, choices, actions = [] }) {
+  // `note` may be a node (when a caller needs to update it in place) or a string.
+  const noteNode = note instanceof Node ? note : note ? el("p", { class: "curtain__note", text: note }) : null;
+
   return new Promise((resolve) => {
     const close = (value) => {
       overlay.remove();
@@ -130,7 +133,7 @@ export function curtain({ eyebrow, title, note, body, choices, actions = [] }) {
       { class: "curtain" },
       eyebrow ? el("p", { class: "eyebrow", text: eyebrow }) : null,
       el("h2", { class: "curtain__title", text: title }),
-      note ? el("p", { class: "curtain__note", text: note }) : null,
+      noteNode,
       body || null,
       choiceRow,
       actions.length
@@ -166,12 +169,13 @@ export function curtain({ eyebrow, title, note, body, choices, actions = [] }) {
  * can show a live indicator. Failures are swallowed: narration is flavour, and
  * a game must still be playable with the sound off or the audio route down.
  */
-export function createSpeaker({ speak, voice, onStateChange }) {
+export function createSpeaker({ speak, voice, onStateChange, onVoiceFailure }) {
   let queue = [];
   let playing = false;
   let audio = null;
   let muted = false;
   let currentUrl = null;
+  let warned = false;
 
   const setSpeaking = (value) => onStateChange?.(value);
 
@@ -201,7 +205,13 @@ export function createSpeaker({ speak, voice, onStateChange }) {
         audio.onerror = () => reject(new Error("audio playback failed"));
         audio.play().catch(reject);
       });
-    } catch {
+    } catch (error) {
+      // Say something once if the voice itself is the problem (a paid-only
+      // model on a free balance, say) rather than failing silently forever.
+      if (!warned && /balance|pollen|402/i.test(error?.message || "")) {
+        warned = true;
+        onVoiceFailure?.(error);
+      }
       // Silent fallback: pause a beat in place of the voice.
       await new Promise((r) => setTimeout(r, Math.min(line.length * 42, 5200)));
     } finally {

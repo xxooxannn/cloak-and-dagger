@@ -12,8 +12,10 @@ const BASE = "https://gen.pollinations.ai";
 export const MODELS = {
   // Cheap and quick enough for the host's turn-taking, strong at structured output.
   text: "openai/gpt-5.4-nano",
-  // Instructable TTS: the host can be told how to sound per line.
-  speech: "qwen/qwen3-tts-instruct-flash",
+  // openai/tts-1 is deliberate: it is one of only two speech models reachable
+  // with Quest Pollen. The richer elevenlabs/qwen voices are paid-only and fail
+  // with 402 for anyone playing on a free balance.
+  speech: "openai/tts-1",
   // Fast, cheap, no per-image premium tier.
   image: "tongyi-mai/z-image-turbo",
 };

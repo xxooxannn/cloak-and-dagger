@@ -15,8 +15,41 @@ You are theatrical, dry and a little menacing. You never use emoji, never use
 markdown, never use bullet points, and you never speak in all caps. You keep
 lines under 45 words so they land well when read aloud.`;
 
+/**
+ * Setting sparks. One is drawn per game and handed to the model as a strong
+ * prior, which does two jobs: it stops consecutive nights drifting into the same
+ * idea, and it varies the prompt text so a cached response can't hand back
+ * last night's scenario verbatim.
+ */
+const SPARKS = [
+  "a locked museum wing closed for a private viewing",
+  "a lighthouse that has gone three nights without answering",
+  "a members-only club with a guest book nobody admits to signing",
+  "a country house sale where the catalogue is wrong",
+  "a rehearsal room where the prop knife was swapped for a real one",
+  "a hotel kitchen at 3am and a missing tray of silver",
+  "a private rail carriage where one passenger boarded alone",
+  "a botanical archive where a specimen has changed overnight",
+  "a recording studio session that nobody can remember finishing",
+  "a ski lodge with one boot missing and two rooms booked",
+  "a regatta yacht where the logbook has two different hands",
+  "a family vault opened over a disputed inheritance",
+  "a shuttered seaside pier where the lights still come on",
+  "an observatory whose latest plate shows someone who was never there",
+  "a tailor's shop where a suit was collected by the wrong man",
+  "a wine auction and one bottle that was never bid for",
+];
+
+/** A spark other than the one used last time, so nights stay visibly different. */
+export function drawSpark(previous) {
+  const fresh = SPARKS.filter((spark) => spark !== previous);
+  const pool = fresh.length ? fresh : SPARKS;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
 /** A fresh premise sized to the table — bigger tables get tighter stories. */
-export async function craftScenario(key, { players, theme }, { signal } = {}) {
+export async function craftScenario(key, { players, theme, spark }, { signal } = {}) {
+  const brief = theme || spark;
   return askJson(
     key,
     {
@@ -31,9 +64,9 @@ Reply with JSON only:
   "opener": "2-4 sentences the host speaks to open the round",
   "scene_prompt": "a text-to-image prompt for a moody illustration of the setting, no text or lettering"
 }`,
-      prompt: `Write tonight's scenario for ${players.length} players seated in a room${
-        theme ? `, with this theme in mind: ${theme}` : ""
-      }.
+      prompt: `Write tonight's scenario for ${players.length} players seated in a room.
+
+Tonight it is: ${brief || "somewhere you have not used before — choose the setting yourself and make it specific."}
 
 Make the incident concrete and ambiguous — several people had motive and
 access, and none of the evidence alone settles anything. Players will each get

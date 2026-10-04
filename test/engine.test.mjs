@@ -137,6 +137,23 @@ test("a player voting themselves is never a win", () => {
   assert.equal(p4.won, false);
 });
 
+test("an innocent who names the culprit but loses is not 'wrong'", () => {
+  // This is the case the scoreboard copy got wrong: the player was right, the
+  // room just didn't listen. `won` is false but `votedCorrectly` is true.
+  const players = seats(6);
+  const roles = new Map(players.map((p) => [p.id, "innocent"]));
+  roles.set("p1", "culprit");
+  // p2 alone names p1 — one vote out of six is not a majority.
+  const votes = { p1: "p2", p2: "p1", p3: "p2", p4: "p2", p5: "p2", p6: "p2" };
+  const verdict = resolveVote(players, votes, "p1");
+  const score = scoreGame(players, roles, votes, verdict);
+
+  const p2 = score.rows.find((r) => r.player.id === "p2");
+  assert.equal(verdict.caught, false, "one vote of six is not a majority");
+  assert.equal(p2.votedCorrectly, true, "p2 named the culprit");
+  assert.equal(p2.won, false, "but the round was lost");
+});
+
 test("initials handle single names, pairs and empty input", () => {
   assert.equal(initials("Ada Lovelace"), "AL");
   assert.equal(initials("Prince"), "PR");

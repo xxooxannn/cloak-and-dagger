@@ -51,16 +51,30 @@ The rules are covered by tests: `npm test`.
 
 ## Cost
 
-Roughly **0.02–0.05 Pollen** for a full game on the default models.
+Roughly **0.04 Pollen** for a full game on the default models — measured, not
+estimated.
 
 | Call | Model | Used for |
 | --- | --- | --- |
 | Scenario, cards, awards, verdict | `openai/gpt-5.4-nano` | Structure and prose |
-| Narration | `qwen/qwen3-tts-instruct-flash` | The host's voice |
+| Narration | `openai/tts-1` | The host's voice |
 | Scene art, case-file poster | `tongyi-mai/z-image-turbo` | Illustration |
+
+All three are reachable with **Quest Pollen**, so nobody has to spend real money
+to play. That rules out the richer `elevenlabs` and `qwen` speech models, which
+are paid-only and answer `402` on a free balance — worth knowing before you swap
+the voice.
 
 Model ids are constants at the top of [`js/api.js`](js/api.js) if you'd rather
 trade cost for quality.
+
+## A new scenario every night
+
+The host draws a *setting spark* from a list of sixteen before it writes
+anything ([`drawSpark`](js/host.js)), and never repeats the one it used last.
+That does two jobs: it keeps consecutive nights visibly different, and it varies
+the prompt text so a cached response can't hand back last night's scenario
+verbatim. You can also type your own setting into the lobby.
 
 ## Bring your own Pollen
 

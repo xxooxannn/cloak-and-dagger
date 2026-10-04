@@ -12,6 +12,7 @@ import {
   craftPressure,
   craftScenario,
   craftVerdict,
+  drawSpark,
   judgeAccusations,
 } from "./host.js";
 import {
@@ -38,7 +39,9 @@ const KEY_STORAGE = "cloak-dagger-key";
 const NAMES_STORAGE = "cloak-dagger-names";
 const THEME_STORAGE = "cloak-dagger-theme";
 
-const HOST_VOICE = "af_wonder";
+// OpenAI's six voices; "onyx" is the deepest, which suits a host who is meant
+// to sound like they know where everyone buried the body.
+const HOST_VOICE = "onyx";
 const DISCUSSION_SECONDS = 180;
 
 /** Everything mutable for one session. Not persisted — a game is ephemeral. */
@@ -50,6 +53,7 @@ const state = {
   roles: new Map(),
   cards: [],
   scenario: null,
+  spark: null,
   accusations: [],
   votes: {},
   tally: null,
@@ -72,6 +76,12 @@ function boot() {
 
   state.speaker = createSpeaker({
     speak: (text) => speakLine(state.key, text, { voice: HOST_VOICE }),
+    onVoiceFailure: () =>
+      toast(
+        "The host can't speak on a free balance — every line is captioned instead.",
+        "info",
+        7000,
+      ),
     onStateChange: (speaking) => {
       document.querySelectorAll("[data-narration]").forEach((node) => {
         node.dataset.speaking = String(speaking);
@@ -398,7 +408,9 @@ async function startGame(theme) {
 
   const stop = busy("The host is thinking", "Writing tonight's scenario…");
   try {
-    state.scenario = await craftScenario(state.key, { players: state.players, theme }, { signal });
+    const spark = drawSpark(state.spark);
+    state.spark = spark;
+    state.scenario = await craftScenario(state.key, { players: state.players, theme, spark }, { signal });
     state.cards = await craftCards(
       state.key,
       {
@@ -434,21 +446,19 @@ function fail(error, fallbackMessage) {
 async function dealPhase() {
   for (const [index, card] of state.cards.entries()) {
     const player = state.players.find((p) => p.id === card.playerId);
-    const role = state.roles.get(card.playerId);
-
-    let revealed = false;
+    const isCulprit = state.roles.get(card.playerId) === "culprit";
 
     const dossier = el(
       "div",
-      { class: "dossier" },
+      { class: "dossier", style: "display:none" },
       el(
         "div",
         { class: "dossier__seal" },
-        el("p", { class: "eyebrow", text: role === "culprit" ? "Sealed" : "Sealed" }),
+        el("p", { class: "eyebrow", text: "Sealed" }),
         el("p", {
           class: "dossier__role",
-          dataset: { role },
-          text: role === "culprit" ? "You did it." : "You are innocent.",
+          dataset: { role: isCulprit ? "culprit" : "innocent" },
+          text: isCulprit ? "You did it." : "You are innocent.",
         }),
       ),
       el(
@@ -460,28 +470,31 @@ async function dealPhase() {
       ),
     );
 
-    const peek = el("button", { class: "btn btn--ghost btn--block", text: "Hold to read" });
-    const body = el("div", { style: "display:none" }, dossier);
+    const peek = el("button", { class: "btn btn--ghost btn--block", text: "Read my card" });
+    const note = el("p", { class: "curtain__note" });
 
-    const reveal = () => {
-      revealed = !revealed;
-      body.style.display = revealed ? "block" : "none";
-      peek.textContent = revealed ? "Hide the card" : "Hold to read";
+    // Mutated in place by the reveal toggle, so the curtain never has to
+    // re-render while it is holding a secret.
+    const apply = (open) => {
+      dossier.style.display = open ? "block" : "none";
+      peek.textContent = open ? "Hide my card" : "Read my card";
+      note.textContent = open
+        ? "Read it quietly, then hide it before you hand the phone on."
+        : "Everyone else: look away. The card stays hidden until this player says so.";
     };
-    peek.addEventListener("click", reveal);
+    peek.addEventListener("click", () => apply(dossier.style.display === "none"));
+    apply(false);
 
     await curtain({
       eyebrow: `Seat ${index + 1} of ${state.cards.length}`,
       title: `Pass the phone to ${player.name}`,
-      note: revealed
-        ? "Make sure nobody else is looking, then read it aloud."
-        : "Everyone else: look away. The card stays hidden until this player says so.",
-      body: revealed ? null : el("div", { style: "width:min(560px,100%)" }, peek),
-      actions: [{ label: revealed ? `I'm ${player.name}, hide it` : `I'm ${player.name}, ready`, value: true }],
+      note,
+      body: el("div", { style: "width:min(560px,100%);display:grid;gap:var(--gap-3)" }, peek, dossier),
+      actions: [{ label: `I'm ${player.name}, ready`, variant: "primary", value: true }],
     });
 
-    // Force-hide before the curtain lifts so the card never flashes to the room.
-    if (revealed) reveal();
+    // The overlay is already gone, so nothing can flash to the next player.
+    dossier.style.display = "none";
   }
 }
 
@@ -499,7 +512,10 @@ async function openingPhase() {
     paintImage(sceneHost, state.scenario.scene_prompt, "scene");
   }
 
-  await state.speaker.say(state.scenario.opener || state.scenario.incident);
+  // Deliberately not awaited: the host keeps talking over the discussion timer.
+  // Speech is a queue so lines never overlap, but nobody is ever stuck waiting
+  // on a voice to finish before they can act.
+  state.speaker.say(state.scenario.opener || state.scenario.incident);
 
   const summary = el(
     "div",
@@ -743,7 +759,8 @@ async function awardsPhase() {
   }
 
   setNarration(awards.verdict_line || "The host has made up its mind about you all.");
-  await state.speaker.say(
+  // Non-blocking: the ballot opens while the host reads the verdicts out.
+  state.speaker.say(
     ...(awards.awards || []).map((award) => `${award.title}. ${award.line}`),
     awards.verdict_line || "",
   );
@@ -850,48 +867,58 @@ async function verdictPhase() {
     el("div", { class: "narration__controls" }, speechToggle()),
   );
 
+  // "Won" and "was right" are not the same thing: an innocent can name the
+  // culprit and still lose, because the room didn't listen. Never call that
+  // player wrong.
+  const outcome = (row) => {
+    const picked = state.players.find((p) => p.id === state.votes[row.player.id])?.name;
+
+    if (row.role === "culprit") {
+      return row.won
+        ? { icon: "✓", title: "got away with it", body: `${culprit.name} walked free on ${state.tally.culpritVotes} vote${state.tally.culpritVotes === 1 ? "" : "s"}.` }
+        : { icon: "✕", title: "caught", body: `The room saw through it, ${state.tally.culpritVotes} of ${state.players.length} votes.` };
+    }
+
+    if (row.votedCorrectly) {
+      return row.won
+        ? { icon: "✓", title: "named them", body: "Read the room and carried it." }
+        : { icon: "✓", title: "named them — too late", body: "Named the culprit, but the room didn't listen." };
+    }
+
+    return { icon: "✕", title: "was wrong", body: `Voted for ${picked}.` };
+  };
+
   const scoreboard = el(
     "div",
     { class: "awards", style: "margin-top:var(--gap-4)" },
-    state.score.rows.map((row, index) =>
-      el(
+    state.score.rows.map((row, index) => {
+      const result = outcome(row);
+      return el(
         "div",
         {
           class: "award",
           style: `animation-delay:${index * 70}ms`,
           dataset: row.role === "culprit" ? {} : { verdict: row.won ? "vindicated" : "" },
         },
-        el("span", { class: "award__icon", text: row.won ? "✓" : "✕" }),
+        el("span", { class: "award__icon", text: result.icon }),
         el(
           "div",
           {},
-          el("p", {
-            class: "award__title",
-            text: `${row.player.name} — ${row.role === "culprit" ? (row.won ? "got away with it" : "caught") : row.won ? "named them" : "was wrong"}`,
-          }),
-          el("p", {
-            class: "award__body",
-            text:
-              row.role === "culprit"
-                ? state.tally.caught
-                  ? "The room saw through it."
-                  : "Not a single vote landed."
-                : row.votedCorrectly
-                  ? "Read the room perfectly."
-                  : `Voted for ${state.players.find((p) => p.id === state.votes[row.player.id])?.name}.`,
-          }),
+          el("p", { class: "award__title", text: `${row.player.name} — ${result.title}` }),
+          el("p", { class: "award__body", text: result.body }),
         ),
-      ),
-    ),
+      );
+    }),
   );
 
   const extra = $("#stage-extra");
   extra.replaceChildren(summary, confession, scoreboard);
 
   if (state.images && ending.poster_prompt) {
-    const poster = el("img", { class: "poster", alt: "Case file poster for tonight's verdict" });
-    extra.append(el("div", { style: "margin-top:var(--gap-4)" }, poster));
-    paintImage(poster, ending.poster_prompt, "poster");
+    // A container, not an <img>: paintImage fills it once the URL comes back.
+    const frame = el("div", { style: "margin-top:var(--gap-4)" });
+    extra.append(frame);
+    paintImage(frame, ending.poster_prompt, "poster");
   }
 
   extra.append(
@@ -908,7 +935,7 @@ async function verdictPhase() {
   );
 
   setNarration(ending.narration || "");
-  await state.speaker.say(ending.narration, ending.confession, ending.sting);
+  state.speaker.say(ending.narration, ending.confession, ending.sting);
 }
 
 function playAgain() {
@@ -981,11 +1008,27 @@ function speechToggle() {
   return button;
 }
 
+/**
+ * Fills `node` with a generated still once it arrives. Takes a container, not
+ * an <img>, so the space can show a placeholder while the model works.
+ */
 async function paintImage(node, prompt, seedTag) {
   if (!node || !prompt) return;
+  node.replaceChildren(
+    el("div", {
+      class: "poster",
+      style:
+        "aspect-ratio:1/1;display:grid;place-content:center;color:var(--text-low);font-family:var(--font-mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase",
+      text: "developing the scene…",
+    }),
+  );
+
   try {
     const url = await generateImage(state.key, `${prompt}. Seed ${seedTag}.`);
-    node.replaceChildren(el("img", { class: "poster", src: url, alt: prompt.slice(0, 120) }));
+    const img = el("img", { class: "poster", src: url, alt: prompt.slice(0, 140) });
+    // A dead media URL must not leave a broken-image icon on the page.
+    img.addEventListener("error", () => node.replaceChildren());
+    node.replaceChildren(img);
   } catch {
     node.replaceChildren();
   }
